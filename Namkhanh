@@ -1,3 +1,19 @@
+task.spawn(function()
+    while task.wait(1) do
+        for _, v in pairs(game.Players:GetPlayers()) do
+            if v ~= game.Players.LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                pcall(function()
+                    local hrp = v.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(10, 10, 10)
+                    hrp.Transparency = 0.7
+                    hrp.Material = Enum.Material.ForceField
+                    hrp.CanCollide = false
+                end)
+            end
+        end
+    end
+end)
+
 --Function to simulate lag
 function ApplyFigLag(minDelay, maxDelay)
     local delayTime = math.random(minDelay, maxDelay) / 1000

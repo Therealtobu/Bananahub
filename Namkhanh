@@ -1,0 +1,101 @@
+--Function to simulate lag
+function ApplyFigLag(minDelay, maxDelay)
+    local delayTime = math.random(minDelay, maxDelay) / 1000
+    task.wait(delayTime)
+end
+
+-- Function to predict enemy aim based on velocity and direction
+function PredictTargetAim(target)
+    local targetHumanoidRootPart = target.Character:FindFirstChild("HumanoidRootPart")
+    if targetHumanoidRootPart then
+        local targetVelocity = target.Character.HumanoidRootPart.Velocity
+        local targetPosition = targetHumanoidRootPart.Position
+        local aimPredictionDistance = targetVelocity.Magnitude * 0.5  -- Adjust multiplier for faster enemies
+        local predictedPosition = targetPosition + targetVelocity * aimPredictionDistance
+        return predictedPosition
+    end
+    return target.Character.HumanoidRootPart.Position
+end
+
+-- Anti Sus: Randomize skill usage to avoid detection
+function RandomizeSkillUsage()
+    local skills = {"Z", "X", "C", "V", "F"}
+    local skill = skills[math.random(1, #skills)]
+    VIM:SendKeyEvent(true, skill, false, game)
+    ApplyFigLag(100, 300)  -- Add random lag to avoid detection
+    VIM:SendKeyEvent(false, skill, false, game)
+end
+
+-- Anti Kill: Smart dodge and attack back
+function SmartAttackAndDodge()
+    local target = GetClosestEnemy()
+    if target then
+        local dist = (player.Character.HumanoidRootPart.Position - target.Character.HumanoidRootPart.Position).Magnitude
+        if dist < 30 then
+            -- Perform dodge if too close
+            PerformSmartDashWithLag()
+            -- Spam skills during Ken or when low health
+            if target.Character:FindFirstChild("Ken") then
+                SpamSkillsDuringKen(target)
+            end
+            -- Perform attack
+            RandomizeSkillUsage()
+        end
+    end
+end
+
+-- Function to get the closest enemy
+function GetClosestEnemy()
+    local shortest, chosen = math.huge, nil
+    for _, v in ipairs(game.Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (v.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+            if dist < shortest then
+                shortest = dist
+                chosen = v
+            end
+        end
+    end
+    return chosen
+end
+
+-- Function to perform a smart dash with lag
+function PerformSmartDashWithLag()
+    local dirs = {"W", "A", "S", "D"}
+    local dir = dirs[math.random(1, #dirs)]
+    VIM:SendKeyEvent(true, dir, false, game)
+    ApplyFigLag(50, 150)  -- Random lag between 50ms and 150ms
+    VIM:SendKeyEvent(false, dir, false, game)
+    ApplyFigLag(100, 200)  -- Add random lag between 100ms and 200ms
+    VIM:SendKeyEvent(true, dir, false, game)
+    ApplyFigLag(50, 150)  -- Add more random lag
+    VIM:SendKeyEvent(false, dir, false, game)
+end
+
+-- Main loop to monitor and handle actions
+game:GetService("RunService").Heartbeat:Connect(function()
+    if not player.Character or not player.Character:FindFirstChild("Humanoid") then return end
+    local humanoid = player.Character.Humanoid
+    if humanoid.Health < 5000 then
+        lastLowHealthCount += 1
+        if lastLowHealthCount >= 3 then
+            currentTarget = GetClosestEnemy()
+            lastLowHealthCount = 0
+        end
+    end
+
+    if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+        local dist = (player.Character.HumanoidRootPart.Position - currentTarget.Character.HumanoidRootPart.Position).Magnitude
+        if dist < 30 then
+            -- Perform optimized actions for better performance and kills
+            SmartAttackAndDodge()
+        end
+    else
+        currentTarget = GetClosestEnemy()
+    end
+end)
+loadstring(game:HttpGet("https://raw.githubusercontent.com/obiiyeuem/vthangsitink/refs/heads/main/BananaCat-BountyEz.lua"))()
+while wait() do
+
+game:service("VirtualInputManager"):SendKeyEvent(true, "Space", false, game)
+ end

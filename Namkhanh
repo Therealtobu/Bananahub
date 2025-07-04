@@ -1,7 +1,21 @@
+-- Ensure game and player are loaded
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local VIM = game:GetService("VirtualInputManager")
+
+-- Wait for Character to exist
+repeat wait() until player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+local currentTarget = nil
+local lastLowHealthCount = 0
+
+-- Expand hitbox for other players
 task.spawn(function()
     while task.wait(1) do
-        for _, v in pairs(game.Players:GetPlayers()) do
-            if v ~= game.Players.LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
                 pcall(function()
                     local hrp = v.Character.HumanoidRootPart
                     hrp.Size = Vector3.new(10, 10, 10)
@@ -14,7 +28,7 @@ task.spawn(function()
     end
 end)
 
---Function to simulate lag
+-- Function to simulate lag
 function ApplyFigLag(minDelay, maxDelay)
     local delayTime = math.random(minDelay, maxDelay) / 1000
     task.wait(delayTime)
@@ -22,23 +36,23 @@ end
 
 -- Function to predict enemy aim based on velocity and direction
 function PredictTargetAim(target)
-    local targetHumanoidRootPart = target.Character:FindFirstChild("HumanoidRootPart")
+    local targetHumanoidRootPart = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
     if targetHumanoidRootPart then
-        local targetVelocity = target.Character.HumanoidRootPart.Velocity
+        local targetVelocity = targetHumanoidRootPart.Velocity
         local targetPosition = targetHumanoidRootPart.Position
-        local aimPredictionDistance = targetVelocity.Magnitude * 0.5  -- Adjust multiplier for faster enemies
+        local aimPredictionDistance = targetVelocity.Magnitude * 0.5 -- Adjust multiplier if needed
         local predictedPosition = targetPosition + targetVelocity * aimPredictionDistance
         return predictedPosition
     end
-    return target.Character.HumanoidRootPart.Position
+    return nil
 end
 
--- Anti Sus: Randomize skill usage to avoid detection
+-- Anti Sus: Randomize skill usage
 function RandomizeSkillUsage()
     local skills = {"Z", "X", "C", "V", "F"}
     local skill = skills[math.random(1, #skills)]
     VIM:SendKeyEvent(true, skill, false, game)
-    ApplyFigLag(100, 300)  -- Add random lag to avoid detection
+    ApplyFigLag(100, 300)
     VIM:SendKeyEvent(false, skill, false, game)
 end
 
@@ -48,13 +62,10 @@ function SmartAttackAndDodge()
     if target then
         local dist = (player.Character.HumanoidRootPart.Position - target.Character.HumanoidRootPart.Position).Magnitude
         if dist < 30 then
-            -- Perform dodge if too close
             PerformSmartDashWithLag()
-            -- Spam skills during Ken or when low health
             if target.Character:FindFirstChild("Ken") then
                 SpamSkillsDuringKen(target)
             end
-            -- Perform attack
             RandomizeSkillUsage()
         end
     end
@@ -62,8 +73,9 @@ end
 
 -- Function to get the closest enemy
 function GetClosestEnemy()
-    local shortest, chosen = math.huge, nil
-    for _, v in ipairs(game.Players:GetPlayers()) do
+    local shortest = math.huge
+    local chosen = nil
+    for _, v in ipairs(Players:GetPlayers()) do
         if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
             local dist = (v.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
             if dist < shortest then
@@ -80,19 +92,27 @@ function PerformSmartDashWithLag()
     local dirs = {"W", "A", "S", "D"}
     local dir = dirs[math.random(1, #dirs)]
     VIM:SendKeyEvent(true, dir, false, game)
-    ApplyFigLag(50, 150)  -- Random lag between 50ms and 150ms
+    ApplyFigLag(50, 150)
     VIM:SendKeyEvent(false, dir, false, game)
-    ApplyFigLag(100, 200)  -- Add random lag between 100ms and 200ms
+    ApplyFigLag(100, 200)
     VIM:SendKeyEvent(true, dir, false, game)
-    ApplyFigLag(50, 150)  -- Add more random lag
+    ApplyFigLag(50, 150)
     VIM:SendKeyEvent(false, dir, false, game)
+end
+
+-- Dummy function for SpamSkillsDuringKen (define it or remove calls if not used)
+function SpamSkillsDuringKen(target)
+    -- Add your logic if you have one
 end
 
 -- Main loop to monitor and handle actions
 game:GetService("RunService").Heartbeat:Connect(function()
-    if not player.Character or not player.Character:FindFirstChild("Humanoid") then return end
-    local humanoid = player.Character.Humanoid
-    if humanoid.Health < 5000 then
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+
+    local humanoid = player.Character:FindFirstChild("Humanoid")
+    if humanoid and humanoid.Health < 5000 then
         lastLowHealthCount += 1
         if lastLowHealthCount >= 3 then
             currentTarget = GetClosestEnemy()
@@ -103,15 +123,19 @@ game:GetService("RunService").Heartbeat:Connect(function()
     if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
         local dist = (player.Character.HumanoidRootPart.Position - currentTarget.Character.HumanoidRootPart.Position).Magnitude
         if dist < 30 then
-            -- Perform optimized actions for better performance and kills
             SmartAttackAndDodge()
         end
     else
         currentTarget = GetClosestEnemy()
     end
 end)
-loadstring(game:HttpGet("https://raw.githubusercontent.com/obiiyeuem/vthangsitink/refs/heads/main/BananaCat-BountyEz.lua"))()
-while wait() do
 
-game:service("VirtualInputManager"):SendKeyEvent(true, "Space", false, game)
- end
+-- Load additional external script
+loadstring(game:HttpGet("https://raw.githubusercontent.com/obiiyeuem/vthangsitink/refs/heads/main/BananaCat-BountyEz.lua"))()
+
+-- Continuous Space press
+task.spawn(function()
+    while task.wait() do
+        VIM:SendKeyEvent(true, "Space", false, game)
+    end
+end)
